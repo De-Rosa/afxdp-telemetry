@@ -5,16 +5,18 @@
 #include <new>
 #include <atomic>
 
-constexpr bool is_power_of_two(size_t n) {
-  return (n & (n - 1)) == 0;
-}
-
-// https://en.cppreference.com/cpp/thread/hardware_destructive_interference_size
+namespace internal {
+  // https://en.cppreference.com/cpp/thread/hardware_destructive_interference_size
 #ifdef __cpp_lib_hardware_interference_size
-  using std::hardware_destructive_interference_size;
+    using std::hardware_destructive_interference_size;
 #else
-  constexpr size_t hardware_destructive_interference_size = 64;
+    constexpr size_t hardware_destructive_interference_size = 64;
 #endif // __cpp_lib_hardware_interference_size
+
+  constexpr bool is_power_of_two(size_t n) {
+    return (n & (n - 1)) == 0;
+  }
+} // internal namespace
 
 template <typename T, size_t capacity>
 class spsc_queue {
@@ -38,7 +40,7 @@ public:
   bool pop(T& val_out);
 
   bool empty(void) const {
-    // empty if tall == head
+    // empty if tail == head
     auto tail = _tail.load(std::memory_order_relaxed);
     auto head = _head.load(std::memory_order_relaxed);
     return tail == head;
