@@ -2,14 +2,11 @@
 #define PACKET
 
 #include <cstdint>
-#include <condition_variable>
-#include <mutex>
-#include <ctime>
-#include <queue>
+#include <chrono>
 
 struct packet {
   uint64_t id;
-  std::time_t timestamp;
+  std::chrono::steady_clock::time_point timestamp;
 };
 
 #endif // PACKET

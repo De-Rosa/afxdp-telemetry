@@ -20,14 +20,14 @@ namespace internal {
 
 template <typename T, size_t capacity>
 class spsc_queue {
-static_assert(capacity > 0 && is_power_of_two(capacity), "capacity must be a power of two");
+static_assert(capacity > 0 && internal::is_power_of_two(capacity), "capacity must be a power of two");
 
 private:
   std::array<T, capacity> _buf;
 
   // align to prevent false sharing
-  alignas(hardware_destructive_interference_size) std::atomic<std::size_t> _head{0};
-  alignas(hardware_destructive_interference_size) std::atomic<std::size_t> _tail{0};
+  alignas(internal::hardware_destructive_interference_size) std::atomic<std::size_t> _head{0};
+  alignas(internal::hardware_destructive_interference_size) std::atomic<std::size_t> _tail{0};
 
   // capacity is power of two
   inline size_t _wrap(size_t val) {
