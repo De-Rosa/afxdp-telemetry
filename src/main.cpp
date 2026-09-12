@@ -2,7 +2,9 @@
 #include <vector>
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 #include <thread>
+#include <pthread.h>
 #include "packet.hpp"
 #include "queues/mutex_queue.hpp"
 #include "queues/spsc_queue.hpp"
@@ -82,6 +84,25 @@ void print_sorted_latencies(const std::vector<double>& latencies) {
   std::printf("max: %.3f us\n", latencies.back());
 }
 
+// pthread_setaffinity_np only works on linux
+#ifdef __linux__
+void pin_to_core(std::thread& thr, int core) {
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+
+  // add requested core
+  CPU_SET(core, &cpuset);
+
+  int result = pthread_setaffinity_np(thr.native_handle(), sizeof(cpu_set_t), &cpuset);
+  if (result != 0) {
+    std::printf("failed to pin thread to cpu %d: %s\n", core, std::strerror(result));
+  }
+}
+#else
+void pin_to_core(std::thread& thr, int core) {}
+#endif // __linux__
+
+
 template <typename Queue>
 void run(Queue& q) {
   std::vector<double> latencies;
@@ -92,6 +113,9 @@ void run(Queue& q) {
   std::thread producer(producer_run<Queue>, std::ref(q));
   std::thread consumer(consumer_run<Queue>, std::ref(q),
       std::ref(latencies), std::ref(order_valid));
+
+  pin_to_core(producer, 2);
+  pin_to_core(consumer, 3);
 
   producer.join();
   consumer.join();
