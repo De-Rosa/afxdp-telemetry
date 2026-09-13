@@ -1,8 +1,8 @@
 #ifndef PACKET
 #define PACKET
 
-#include <cstdint>
 #include <chrono>
+#include <cstdint>
 
 struct packet {
   uint64_t id;
