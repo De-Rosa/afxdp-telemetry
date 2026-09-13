@@ -29,8 +29,14 @@ private:
   alignas(internal::hardware_destructive_interference_size) std::atomic<std::size_t> _head{0};
   alignas(internal::hardware_destructive_interference_size) std::atomic<std::size_t> _tail{0};
 
+  // cache index instead of loading every push/pop call
+  // producer owned
+  size_t _tail_cache{0};
+  // consumer owned
+  size_t _head_cache{0};
+
   // capacity is power of two
-  inline size_t _wrap(size_t val) {
+  inline static size_t _wrap(size_t val) {
     return (val + 1) & (capacity - 1);
   }
 public:
@@ -52,9 +58,13 @@ bool spsc_queue<T, capacity>::push(const T& val) {
   auto head = _head.load(std::memory_order_relaxed);
   auto next = _wrap(head);
 
-  auto tail = _tail.load(std::memory_order_acquire);
-  // we leave 1 to distinguish full from empty
-  if (next == tail) return false;
+  // producer's view of head is always accurate so will only
+  // be stale in thinking that its full
+  if (next == _tail_cache) { [[unlikely]]
+    _tail_cache = _tail.load(std::memory_order_acquire);
+    // is actually full
+    if (next == _tail_cache) return false;
+  };
 
   _buf[head] = val;
 
@@ -70,7 +80,11 @@ bool spsc_queue<T, capacity>::push(T&& val) {
 
   auto tail = _tail.load(std::memory_order_acquire);
   // we leave 1 to distinguish full from empty
-  if (next == tail) return false;
+  if (next == _tail_cache) { [[unlikely]]
+    _tail_cache = _tail.load(std::memory_order_acquire);
+    // is actually full
+    if (next == _tail_cache) return false;
+  };
 
   _buf[head] = std::move(val);
 
@@ -82,10 +96,13 @@ template <typename T, size_t capacity>
 bool spsc_queue<T, capacity>::pop(T& val_out) {
   auto tail = _tail.load(std::memory_order_relaxed);
 
-  // need to acquire head from producers
-  auto head = _head.load(std::memory_order_acquire);
   // is empty
-  if (tail == head) return false;
+  // head cache will only lag behind, so cannot be 'incorrect' if
+  // not empty
+  if (tail == _head_cache) { [[unlikely]]
+    _head_cache = _head.load(std::memory_order_acquire);
+    if (tail == _head_cache) return false;
+  }
 
   val_out = _buf[tail];
 
