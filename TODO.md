@@ -1,12 +1,7 @@
 # trajectory
-- [ ] consumer/producer program
-- [ ] bounded SPSC ring buffer
-- [ ] measure p50, p99, p99.9 latency
-- [ ] cpu affinity/thread pinning
-- [ ] udp/tcp networking baseline
-- [ ] minimal xdp program
 - [ ] AF_XDP packet receiver
 - [ ] integrate AF_XDP with SPSC pipeline
 - [ ] eBPF/XDP latency instrumentation
+- [ ] udp/tcp networking baseline
 - [ ] compare TCP vs AF_XDP performance
 - [ ] identify bottlenecks and continue optimisation
