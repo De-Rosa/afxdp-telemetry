@@ -1,4 +1,6 @@
 #include "bench/stats.hpp"
+#include <algorithm>
+#include <iostream>
 
 double bench::percentile(const std::vector<double> &sorted, double p) {
   size_t index = static_cast<size_t>(p * sorted.size());
